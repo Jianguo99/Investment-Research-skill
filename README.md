@@ -130,13 +130,11 @@ config_file = "agents/web-researcher.toml"
 >
 > **Older versions**: Use `run /skill-name` instead.
 >
-> **Codex**: You can trigger these skills from `/skills` -> `List Skills`, or ask naturally, for example `Use the research skill to build an outline for China's brokerages`.
+> **Codex**: You can trigger these skills from `/skills` -> `List Skills`, or ask naturally, for example `Use the invest_reasearch skill to build an outline for China's brokerages`.
 
 | Command | Investment Research Usage |
 |---------|---------------------------|
-| `/research` | Build an initial research outline, including targets and fields to collect |
-| `/research-add-items` | Add more companies, sectors, peers, or themes to the current scope |
-| `/research-add-fields` | Add more fields such as valuation, risks, catalysts, margin profile, or ownership structure |
+| `/invest_reasearch` | Build an initial research outline, including targets and fields to collect |
 | `/research-deep` | Run deeper web research on each target with parallel agents and evidence gathering |
 | `/research-report` | Convert the collected JSON results into a readable markdown report or memo draft |
 
@@ -147,7 +145,7 @@ config_file = "agents/web-researcher.toml"
 ### Phase 1: Build the Research Universe
 
 ```text
-/research China's brokerages
+/invest_reasearch China's brokerages
 ```
 
 **What happens**: You give the skill an investment topic, and it proposes a structured research scope.
@@ -155,19 +153,10 @@ config_file = "agents/web-researcher.toml"
 For Codex, you can also say:
 
 ```text
-Use the research skill to build an outline for China's brokerages
+Use the invest_reasearch skill to build an outline for China's brokerages
 ```
 
 **What you get**: A list of companies, sub-segments, or comparable targets to investigate, plus a field list such as business overview, revenue mix, valuation, catalysts, risks, and recent developments.
-
-### Optional: Expand the Scope
-
-```text
-/research-add-items
-/research-add-fields
-```
-
-**What happens**: You can add more coverage names or expand the field schema before deeper work starts.
 
 ### Phase 2: Deep Investigation
 

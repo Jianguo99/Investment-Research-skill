@@ -1,91 +1,116 @@
 ---
 name: research-report
-description: Summarize deep research results into markdown report, cover all fields, skip uncertain values.
+description: 将多 Agent 深度研究结果整理成最终投资决策报告，只输出决策所需的核心结论、预期差、三情景估值、风险与证伪点及总结表。
 ---
 
-# Research Report - Summary Report
+# Research Report - 最终投资决策报告
 
-## Trigger
+## 触发方式
 `/research-report`
 
 ## Workflow
 
-### Step 1: Locate Results Directory
-Find `*/outline.yaml` in current working directory, read topic and output_dir config.
+### Step 1：读取最终研究结果
 
-### Step 2: Scan Optional Summary Fields
-Read all JSON results, extract fields suitable for TOC display (numeric, short metrics), e.g.:
-- github_stars
-- google_scholar_cites
-- swe_bench_score
-- user_scale
-- valuation
-- release_date
+读取：
 
-Use request_user_input to ask user:
-- Which fields to display in TOC besides item name?
-- Provide dynamic options list (based on actual fields in JSON)
+- `outline.yaml`
+- `fields.yaml`
+- `module-results/*.md`
+- `results/{target_company_slug}.json`
 
-### Step 3: Generate Python Conversion Script
-Generate `generate_report.py` in `{topic}/` directory, script requirements:
-- Read all JSON from output_dir
-- Read fields.yaml to get field structure
-- Cover all field values from each JSON
-- Skip fields with values containing [uncertain]
-- Skip fields listed in uncertain array
-- Generate markdown report format: Table of contents (with anchor links + user-selected summary fields) + Detailed content (by field category)
-- Save to `{topic}/report.md`
+### Step 2：投资委员会汇总
 
-**TOC Format Requirements**:
-- Must include every item
-- Each item displays: number, name (anchor link), user-selected summary fields
-- Example: `1. [GitHub Copilot](#github-copilot) - Stars: 10k | Score: 85%`
+把模块结果交给 `Investment Committee` 进行最终综合判断。
 
-#### Script Technical Requirements (Must Follow)
+Investment Committee 必须回答：
 
-**1. JSON Structure Compatibility**
-Support two JSON structures:
-- Flat structure: Fields directly at top level `{"name": "xxx", "release_date": "xxx"}`
-- Nested structure: Fields in category sub-dict `{"basic_info": {"name": "xxx"}, "technical_features": {...}}`
+1. 是否是长期优质企业（compounder）
+2. 是否具备持续高 ROIC 能力
+3. 当前市场是否错误定价（mispricing）
+4. 未来 1–3 年合理回报率
+5. 是否值得重仓
 
-Field lookup order: Top level -> category mapping key -> Traverse all nested dicts
+### Step 3：生成最终报告脚本
 
-**2. Category Multi-language Mapping**
-fields.yaml category names and JSON keys can be any combination (CN-CN, CN-EN, EN-CN, EN-EN). Must establish bidirectional mapping:
-```python
-CATEGORY_MAPPING = {
-    "Basic Info": ["basic_info", "Basic Info"],
-    "Technical Features": ["technical_features", "technical_characteristics", "Technical Features"],
-    "Performance Metrics": ["performance_metrics", "performance", "Performance Metrics"],
-    "Milestone Significance": ["milestone_significance", "milestones", "Milestone Significance"],
-    "Business Info": ["business_info", "commercial_info", "Business Info"],
-    "Competition & Ecosystem": ["competition_ecosystem", "competition", "Competition & Ecosystem"],
-    "History": ["history", "History"],
-    "Market Positioning": ["market_positioning", "market", "Market Positioning"],
-}
+生成 `generate_report.py`，并要求脚本只输出以下最终格式。
+
+## Final Output Format
+
+### 核心结论
+
+必须一句话。
+
+### 投资判断
+
+简洁回答：
+
+- 是否属于长期优质企业
+- 是否具备持续高 ROIC
+- 是否存在错误定价
+- 未来 1–3 年合理回报率大致是多少
+- 最终结论只能从以下四项中选择一个：
+  - `明显低估（重仓）`
+  - `结构机会（跟踪）`
+  - `合理估值（观望）`
+  - `明显高估（回避）`
+
+### 预期差总结
+
+必须明确：
+
+- 市场当前在预期什么
+- 市场可能错在哪里
+- 哪些变量尚未被定价
+
+### 三情景估值
+
+必须输出表格：
+
+| 情景 | 假设 | 利润 | 估值 | 目标价 | IRR |
+| --- | --- | --- | --- | --- | --- |
+| Bear |  |  |  |  |  |
+| Base |  |  |  |  |  |
+| Bull |  |  |  |  |  |
+
+### 风险与证伪点
+
+必须明确：
+
+- 什么情况出现会导致投资逻辑失败
+- 哪些指标必须持续跟踪
+
+### 总结表
+
+| 维度 | 内容 |
+| --- | --- |
+| 看多逻辑 |  |
+| 看空逻辑 |  |
+| 核心变量 |  |
+| 最大风险 |  |
+| 最终结论 |  |
+
+### Final Question
+
+必须回答：
+
+`如果你是芒格，你是否会重仓这家公司？为什么？`
+
+## Hard Rules
+
+- 禁止空话
+- 禁止仅用 PE 判断
+- 所有结论必须可验证、可跟踪、可证伪
+
+### Step 4：执行脚本
+
+运行：
+
+```text
+python {topic}/generate_report.py
 ```
 
-**3. Complex Value Formatting**
-- list of dicts (e.g., key_events, funding_history): Format each dict as one line, separate kv with ` | `
-- Normal list: Short lists joined with comma, long lists displayed with line breaks
-- Nested dict: Recursive formatting, display with semicolon or line breaks
-- Long text strings (over 100 chars): Add line breaks `<br>` or use blockquote format for readability
-
-**4. Extra Fields Collection**
-Collect fields that exist in JSON but not defined in fields.yaml, put in "Other Info" category. Note to filter:
-- Internal fields: `_source_file`, `uncertain`
-- Nested structure top-level keys: `basic_info`, `technical_features` etc.
-- `uncertain` array: Display each field name on separate line, don't compress into one line
-
-**5. Uncertain Value Skipping**
-Skip conditions:
-- Field value contains `[uncertain]` string
-- Field name is in `uncertain` array
-- Field value is None or empty string
-
-### Step 4: Execute Script
-Run `python {topic}/generate_report.py`
-
 ## Output
-- `{topic}/generate_report.py` - Conversion script
-- `{topic}/report.md` - Summary report
+
+- `{topic}/generate_report.py`
+- `{topic}/report.md`

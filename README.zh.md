@@ -130,13 +130,11 @@ config_file = "agents/web-researcher.toml"
 >
 > **旧版本**：请使用 `run /skill-name`。
 >
-> **Codex**：你可以从 `/skills` -> `List Skills` 里触发，也可以直接自然语言说明，例如 `Use the research skill to build an outline for China's brokerages`。
+> **Codex**：你可以从 `/skills` -> `List Skills` 里触发，也可以直接自然语言说明，例如 `Use the invest_reasearch skill to build an outline for China's brokerages`。
 
 | 命令 | 在投资研究中的用途 |
 |------|--------------------|
-| `/research` | 生成初始研究 outline，包括研究对象和需要收集的字段 |
-| `/research-add-items` | 向当前范围补充更多公司、行业、可比标的或主题 |
-| `/research-add-fields` | 补充更多字段，例如估值、风险、催化剂、利润率或股权结构 |
+| `/invest_reasearch` | 生成初始研究 outline，包括研究对象和需要收集的字段 |
 | `/research-deep` | 对每个研究对象做更深入的联网检索和证据搜集，并行整理结果 |
 | `/research-report` | 把整理好的 JSON 结果转成可读的 markdown 报告或备忘录草稿 |
 
@@ -147,7 +145,7 @@ config_file = "agents/web-researcher.toml"
 ### 阶段 1：搭建研究范围
 
 ```text
-/research 中国券商行业
+/invest_reasearch 中国券商行业
 ```
 
 **会发生什么**：你给出一个投资研究主题，skill 会先帮你提出结构化的研究范围。
@@ -155,19 +153,10 @@ config_file = "agents/web-researcher.toml"
 对于 Codex，也可以这样说：
 
 ```text
-Use the research skill to build an outline for China's brokerages
+Use the invest_reasearch skill to build an outline for China's brokerages
 ```
 
 **你会得到什么**：一组待研究的公司、细分方向或可比标的，以及一套字段列表，例如业务概况、收入结构、估值、催化剂、风险点和近期动态。
-
-### 可选：扩展研究范围
-
-```text
-/research-add-items
-/research-add-fields
-```
-
-**会发生什么**：在进入深度研究之前，你可以继续补充覆盖对象，或者把字段模板扩展得更完整。
 
 ### 阶段 2：深度调查
 

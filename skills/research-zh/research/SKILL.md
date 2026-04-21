@@ -1,5 +1,5 @@
 ---
-name: research
+name: invest_reasearch
 user-invocable: true
 allowed-tools: Read, Write, Glob, WebSearch, Task, AskUserQuestion
 description: 对目标话题进行初步调研，生成调研outline。用于学术调研、benchmark调研、技术选型等场景。
@@ -8,7 +8,7 @@ description: 对目标话题进行初步调研，生成调研outline。用于学
 # Research Skill - 初步调研
 
 ## 触发方式
-`/research <topic>`
+`/invest_reasearch <topic>`
 
 ## 执行流程
 
@@ -140,6 +140,4 @@ prompt = f"""## 任务
 ```
 
 ## 后续命令
-- `/research-add-items` - 补充items
-- `/research-add-fields` - 补充字段
 - `/research-deep` - 开始深度调研

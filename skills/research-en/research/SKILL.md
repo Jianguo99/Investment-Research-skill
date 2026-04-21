@@ -1,5 +1,5 @@
 ---
-name: research
+name: invest_reasearch
 user-invocable: true
 allowed-tools: Read, Write, Glob, WebSearch, Task, AskUserQuestion
 description: Conduct preliminary research on a topic and generate research outline. For academic research, benchmark research, technology selection, etc.
@@ -8,7 +8,7 @@ description: Conduct preliminary research on a topic and generate research outli
 # Research Skill - Preliminary Research
 
 ## Trigger
-`/research <topic>`
+`/invest_reasearch <topic>`
 
 ## Workflow
 
@@ -140,6 +140,4 @@ Merge {step1_output}, {step2_output} and user's existing fields, generate two fi
 ```
 
 ## Follow-up Commands
-- `/research-add-items` - Supplement items
-- `/research-add-fields` - Supplement fields
 - `/research-deep` - Start deep research

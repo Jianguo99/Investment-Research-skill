@@ -1,143 +1,173 @@
 ---
-name: research
-description: Conduct preliminary research on a topic and generate research outline. For academic research, benchmark research, technology selection, etc.
+name: invest_reasearch
+description: 作为多 Agent 投资研究系统的入口，只针对单只股票或单家公司开展完整投资研究。使用芒格 / 巴菲特体系、结构化多步骤流程、可验证与可证伪标准，最终输出唯一投资决策结论。适用于判断一家公司是否属于长期优质企业、是否具备持续高 ROIC、当前市场是否存在错误定价，以及未来 1 到 3 年合理回报率。
 ---
 
-# Research Skill - Preliminary Research
+# Invest Reasearch Skill - 多 Agent 投资研究工作流
 
-## Trigger
-`/research <topic>`
+## 触发方式
+`/invest_reasearch <公司名称或股票代码>`
+
+## System Role
+
+把自己视为一个多 Agent 投资研究系统，而不是普通问答助手。
+
+系统目标不是泛泛回答问题，而是：
+
+- 完成一项完整投资研究任务
+- 输出唯一决策结论
+
+## Global Objective
+
+围绕单只股票，必须回答：
+
+1. 是否是长期优质企业（compounder）
+2. 是否具备持续高 ROIC 能力
+3. 当前市场是否存在错误定价（mispricing）
+4. 未来 1–3 年合理回报率大致是多少
+5. 是否值得重仓
+
+## Execution Mode
+
+必须把任务拆成多个子任务，并在宿主支持时使用并行 sub-agents。
+
+推荐模块角色：
+
+- `Industry Analyst`
+- `Moat Analyst`
+- `Financial Analyst`
+- `Growth Analyst`
+- `Market Expectation Analyst`
+- `Valuation Analyst`
+- `Risk Analyst`
+- `Investment Committee`
+
+每个子任务都必须：
+
+- 目标明确
+- 使用外部数据支持
+- 输出中间结论
 
 ## Workflow
 
-### Step 1: Generate Initial Framework from Model Knowledge
-Based on topic, use model's existing knowledge to generate:
-- Main research objects/items list in this domain
-- Suggested research field framework
+### Step 1：问题拆解
 
-Output {step1_output}, use request_user_input to confirm:
-- Need to add/remove items?
-- Does field framework meet requirements?
+仅使用模型知识做“任务定义”，不要在这一步下投资结论。
 
-### Step 2: Web Search Supplement
-Use request_user_input to ask for time range (e.g., last 6 months, since 2024, unlimited).
+输出：
 
-**Parameter Retrieval**:
-- `{topic}`: User input research topic
-- `{YYYY-MM-DD}`: Current date
-- `{step1_output}`: Complete output from Step 1
-- `{time_range}`: User specified time range
+- 本次研究需要解决的核心问题
+- 不超过 5 个关键变量
 
-**Hard Constraint**: The following prompt must be strictly reproduced, only replacing variables in {xxx}, do not modify structure or wording.
+关键变量应优先从这些方向筛选：
 
-Launch 1 web-search-agent (background), **Prompt Template**:
-```python
-prompt = f"""## Task
-Research topic: {topic}
-Current date: {YYYY-MM-DD}
+- 护城河
+- ROIC
+- 自由现金流
+- 行业结构
+- 未来 1–3 年业绩与股价驱动因素
 
-Based on the following initial framework, supplement latest items and recommended research fields.
+使用 `request_user_input` 确认：
 
-## Existing Framework
-{step1_output}
+- 目标公司、ticker、交易所、货币口径
+- 研究时间范围
+- 用户希望的最低年化回报率门槛
 
-## Goals
-1. Verify if existing items are missing important objects
-2. Supplement items based on missing objects
-3. Continue searching for {topic} related items within {time_range} and supplement
-4. Supplement new fields
+### Step 2：信息收集规划
 
-## Output Requirements
-Return structured results directly (do not write files):
+必须使用外部信息，不能只依赖已有知识。
 
-### Supplementary Items
-- item_name: Brief explanation (why it should be added)
-...
+优先来源：
 
-### Recommended Supplementary Fields
-- field_name: Field description (why this dimension is needed)
-...
+- 公司公告 / 财报
+- 业绩会纪要
+- 券商研报
+- 行业数据
 
-### Sources
-- [Source1](url1)
-- [Source2](url2)
-"""
-```
+后台启动 1 个 `web-search-agent`，补充：
 
-**One-shot Example** (assuming researching AI Coding History):
-```
-## Task
-Research topic: AI Coding History
-Current date: 2025-12-30
+- 关键资料清单
+- 最新重要变化
+- 一致预期相关线索
+- 行业结构与竞争数据来源
 
-Based on the following initial framework, supplement latest items and recommended research fields.
+### Step 3：生成研究 Outline
 
-## Existing Framework
-### Items List
-1. GitHub Copilot: Developed by Microsoft/GitHub, first mainstream AI coding assistant
-2. Cursor: AI-first IDE, based on VSCode
-...
+生成 `outline.yaml`，其中至少包含：
 
-### Field Framework
-- Basic Info: name, release_date, company
-- Technical Features: underlying_model, context_window
-...
+- `topic`
+- `target_company`
+- `research_type`: `invest_reasearch_stock`
+- `core_questions`
+- `key_variables`
+- `source_priority`
+- `module_agents`
+- `execution`
 
-## Goals
-1. Verify if existing items are missing important objects
-2. Supplement items based on missing objects
-3. Continue searching for AI Coding History related items within since 2024 and supplement
-4. Supplement new fields
+`module_agents` 必须包含：
 
-## Output Requirements
-Return structured results directly (do not write files):
+- `industry_analyst`
+- `moat_analyst`
+- `financial_analyst`
+- `growth_analyst`
+- `market_expectation_analyst`
+- `valuation_analyst`
+- `risk_analyst`
+- `investment_committee`
 
-### Supplementary Items
-- item_name: Brief explanation (why it should be added)
-...
+`execution` 必须包含：
 
-### Recommended Supplementary Fields
-- field_name: Field description (why this dimension is needed)
-...
+- `batch_size`
+- `output_dir`
+- `module_dir`
+- `time_range`
+- `return_hurdle`
+- `final_decision_options`
+  - `明显低估（重仓）`
+  - `结构机会（跟踪）`
+  - `合理估值（观望）`
+  - `明显高估（回避）`
 
-### Sources
-- [Source1](url1)
-- [Source2](url2)
-```
+### Step 4：生成字段定义
 
-### Step 3: Ask User for Existing Fields
-Use request_user_input to ask if user has existing field definition file, if so read and merge.
+生成 `fields.yaml`，字段分类必须按这套 workflow 对齐：
 
-### Step 4: Generate Outline (Separate Files)
-Merge {step1_output}, {step2_output} and user's existing fields, generate two files:
+- 问题拆解
+- 信息收集
+- 行业结构分析
+- 公司质量分析
+- 财务与现金流
+- 增长拆解
+- 市场预期分析
+- 预期差识别
+- 估值与回报率
+- 情景分析
+- 证伪机制
+- 最终决策
 
-**outline.yaml** (items + config):
-- topic: Research topic
-- items: Research objects list
-- execution:
-  - batch_size: Number of parallel agents (confirm with request_user_input)
-  - items_per_agent: Items per agent (confirm with request_user_input)
-  - output_dir: Results output directory (default: ./results)
+每个字段至少包含：
 
-**fields.yaml** (field definitions):
-- Field categories and definitions
-- Each field's name, description, detail_level
-- detail_level hierarchy: brief -> moderate -> detailed
-- uncertain: Uncertain fields list (reserved field, auto-filled in deep phase)
+- `name`
+- `description`
+- `detail_level`
 
-### Step 5: Output and Confirm
-- Create directory: `./{topic_slug}/`
-- Save: `outline.yaml` and `fields.yaml`
-- Show to user for confirmation
+并始终保留：
 
-## Output Path
-```
+- `uncertain`
+
+### Step 5：输出并确认
+
+创建目录并保存：
+
+```text
 {current_working_directory}/{topic_slug}/
-  ├── outline.yaml    # items list + execution config
-  └── fields.yaml     # field definitions
+  |- outline.yaml
+  |- fields.yaml
 ```
+
+再读取 `references/munger-checklist.md`，把它作为 deep / report 阶段的硬约束。
 
 ## Follow-up Commands
-- `/research-add-items` - Supplement items
-- `/research-add-fields` - Supplement fields
-- `/research-deep` - Start deep research
+
+- `/research-deep` - 运行多 Agent 深度研究
+- `/research-report` - 生成最终投资决策报告

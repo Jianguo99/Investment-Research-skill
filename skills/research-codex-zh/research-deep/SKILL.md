@@ -1,98 +1,193 @@
 ---
 name: research-deep
-description: Read research outline, launch independent agent for each item for deep research. Disable task output.
+description: 读取单只股票的投资研究 outline，按多 Agent 模式并行执行行业、护城河、财务、增长、预期、估值、风险等模块，先产出中间结论，再合并为结构化 JSON。
 ---
 
-# Research Deep - Deep Research
+# Research Deep - 多 Agent 深度研究
 
-## Trigger
+## 触发方式
 `/research-deep`
 
 ## Workflow
 
-### Step 1: Auto-locate Outline
-Find `*/outline.yaml` file in current working directory, read items list, execution config (including items_per_agent).
+### Step 1：读取研究配置
 
-### Step 2: Resume Check
-- Check completed JSON files in output_dir
-- Skip completed items
+在当前目录定位 `*/outline.yaml`，读取：
 
-### Step 3: Batch Execution
-- Batch by batch_size (need user approval before next batch)
-- Each agent handles items_per_agent items
-- Launch web-search-agent (background parallel, disable task output)
+- `target_company`
+- `core_questions`
+- `key_variables`
+- `source_priority`
+- `module_agents`
+- `execution.output_dir`
+- `execution.module_dir`
 
-**Parameter Retrieval**:
-- `{topic}`: topic field from outline.yaml
-- `{item_name}`: item's name field
-- `{item_related_info}`: item's complete yaml content (name + category + description etc.)
-- `{output_dir}`: execution.output_dir from outline.yaml (default: ./results)
-- `{fields_path}`: absolute path to {topic}/fields.yaml
-- `{output_path}`: absolute path to {output_dir}/{item_name_slug}.json (slugify item_name: replace spaces with _, remove special chars)
+### Step 2：创建模块工作目录
 
-**Hard Constraint**: The following prompt must be strictly reproduced, only replacing variables in {xxx}, do not modify structure or wording.
+在研究目录下准备：
 
-**Prompt Template**:
-```python
-prompt = f"""## Task
-Research {item_related_info}, output structured JSON to {output_path}
+```text
+module-results/
+  |- industry.md
+  |- moat.md
+  |- financial.md
+  |- growth.md
+  |- expectation.md
+  |- valuation.md
+  |- risk.md
+results/
+  |- {target_company_slug}.json
+```
 
-## Field Definitions
-Read {fields_path} to get all field definitions
+### Step 3：并行运行子 Agent
 
-## Output Requirements
-1. Output JSON according to fields defined in fields.yaml
-2. Mark uncertain field values with [uncertain]
-3. Add uncertain array at the end of JSON, listing all uncertain field names
-4. All field values must be in English
+如果宿主支持 sub-agents，就并行启动以下模块；否则顺序执行，但仍按模块拆开：
 
-## Output Path
-{output_path}
+1. `Industry Analyst`
+2. `Moat Analyst`
+3. `Financial Analyst`
+4. `Growth Analyst`
+5. `Market Expectation Analyst`
+6. `Valuation Analyst`
+7. `Risk Analyst`
 
-## Validation
-After completing JSON output, run validation script to ensure complete field coverage:
+每个模块必须：
+
+- 有明确目标
+- 使用外部数据支持
+- 输出中间结论
+
+每个模块都先写入自己的 `module-results/*.md`。
+
+### Step 4：模块任务要求
+
+以下要求适用于每一个子 Agent。
+
+**统一研究原则**
+
+1. 优先分析商业质量，而不是估值
+2. 禁止仅用 PE / PB 做结论
+3. 必须优先围绕护城河、ROIC、自由现金流、行业结构展开
+4. 必须明确区分：
+   - `✅ 事实`
+   - `📊 机构观点`
+   - `🧠 市场预期 / 叙事`
+5. 数据不足时标记 `[uncertain]`
+6. 所有重要结论都必须可被证伪
+
+**Industry Analyst**
+
+目标：
+
+- 判断行业是否赚钱
+- 判断竞争格局
+- 判断产业链利润分配
+- 判断是否长期内卷
+
+输出到 `module-results/industry.md`
+
+**Moat Analyst**
+
+目标：
+
+- 判断护城河是否存在
+- 护城河类型与强度
+- ROIC 3–5 年趋势
+- 定价权是否存在
+- 赚钱来自能力还是周期
+
+输出评级：
+
+- `强 / 中 / 弱 / 无`
+
+输出到 `module-results/moat.md`
+
+**Financial Analyst**
+
+目标：
+
+- 比较净利润与经营现金流
+- 判断 FCF 稳定性
+- 判断资本开支依赖
+
+输出：
+
+- 现金流质量评级
+
+输出到 `module-results/financial.md`
+
+**Growth Analyst**
+
+目标：
+
+- 拆解价格驱动
+- 拆解量驱动
+- 拆解扩张驱动
+- 判断增长是否可持续
+
+输出到 `module-results/growth.md`
+
+**Market Expectation Analyst**
+
+目标：
+
+- 判断市场当前共识
+- 提取一致预期（收入 / 利润）
+- 判断当前叙事
+
+输出到 `module-results/expectation.md`
+
+**Valuation Analyst**
+
+目标：
+
+- 判断当前价格隐含增长
+- 估算未来 3 年收益率（IRR）
+- 输出 Bear / Base / Bull 三情景
+
+输出到 `module-results/valuation.md`
+
+**Risk Analyst**
+
+目标：
+
+- 定义什么情况出现会导致投资逻辑失败
+- 列出必须持续跟踪的指标
+
+输出到 `module-results/risk.md`
+
+### Step 5：合并模块结果
+
+在全部模块完成后，协调层必须：
+
+- 读取全部 `module-results/*.md`
+- 将中间结论合并进主研究标的 JSON
+- 按 `fields.yaml` 输出结构化结果到 `results/{target_company_slug}.json`
+
+JSON 中必须覆盖：
+
+- 行业结构分析
+- 公司质量分析
+- 财务与现金流
+- 增长拆解
+- 市场预期分析
+- 预期差识别
+- 估值与回报率
+- 情景分析
+- 证伪机制
+- 最终决策草案
+
+### Step 6：校验
+
+合并完成后运行：
+
+```text
 python ~/.codex/skills/research/validate_json.py -f {fields_path} -j {output_path}
-Task is complete only after validation passes.
-"""
 ```
 
-**One-shot Example** (assuming researching GitHub Copilot):
-```
-## Task
-Research name: GitHub Copilot
-category: International Product
-description: Developed by Microsoft/GitHub, first mainstream AI coding assistant, ~40% market share, output structured JSON to {project_dir}/results/GitHub_Copilot.json
+只有校验通过，deep 阶段才算完成。
 
-## Field Definitions
-Read {project_dir}/fields.yaml to get all field definitions
+## Output
 
-## Output Requirements
-1. Output JSON according to fields defined in fields.yaml
-2. Mark uncertain field values with [uncertain]
-3. Add uncertain array at the end of JSON, listing all uncertain field names
-4. All field values must be in English
-
-## Output Path
-{project_dir}/results/GitHub_Copilot.json
-
-## Validation
-After completing JSON output, run validation script to ensure complete field coverage:
-python ~/.codex/skills/research/validate_json.py -f {project_dir}/fields.yaml -j {project_dir}/results/GitHub_Copilot.json
-Task is complete only after validation passes.
-```
-
-### Step 4: Wait and Monitor
-- Wait for current batch to complete
-- Launch next batch
-- Display progress
-
-### Step 5: Summary Report
-After all complete, output:
-- Completion count
-- Failed/uncertain marked items
-- Output directory
-
-## Agent Config
-- Background execution: Yes
-- Task Output: Disabled (agent has explicit output file when complete)
-- Resume support: Yes
+- `module-results/*.md`
+- `results/{target_company_slug}.json`
