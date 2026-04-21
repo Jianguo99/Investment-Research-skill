@@ -1,173 +1,179 @@
 ---
 name: invest_reasearch
-description: 作为多 Agent 投资研究系统的入口，只针对单只股票或单家公司开展完整投资研究。使用芒格 / 巴菲特体系、结构化多步骤流程、可验证与可证伪标准，最终输出唯一投资决策结论。适用于判断一家公司是否属于长期优质企业、是否具备持续高 ROIC、当前市场是否存在错误定价，以及未来 1 到 3 年合理回报率。
+description: 作为单一入口的投资研究 skill，只针对单只股票或单家公司执行完整研究，从立项、证据收集、护城河与 ROIC 分析、增长与预期差、估值与风险、JSON 校验到最终决策报告一次完成。适用于判断企业质量、持续高 ROIC 能力、当前是否错误定价，以及未来 1 到 3 年合理回报率。
 ---
 
-# Invest Reasearch Skill - 多 Agent 投资研究工作流
+# Invest Reasearch Skill
 
 ## 触发方式
 `/invest_reasearch <公司名称或股票代码>`
 
-## System Role
+## 总目标
+围绕单一上市公司完成一次端到端投资研究。
 
-把自己视为一个多 Agent 投资研究系统，而不是普通问答助手。
+除非用户明确要求只做中间阶段，否则不要把流程拆成额外 skill，也不要要求用户再手动运行别的命令。
 
-系统目标不是泛泛回答问题，而是：
+最终必须回答：
 
-- 完成一项完整投资研究任务
-- 输出唯一决策结论
+1. 这是不是长期优质企业？
+2. 它是否具备持续较高的 ROIC 和现金创造能力？
+3. 市场当前是否存在错误定价？
+4. 未来 1 到 3 年的合理回报区间大致是多少？
+5. 最终投资动作是什么？
 
-## Global Objective
+## 研究原则
 
-围绕单只股票，必须回答：
+- 先判断商业质量、行业结构和再投资空间，再看估值。
+- 优先使用最新且高质量的外部来源：财报、公告、业绩会、投资者演示、交易所披露、行业数据、可靠第三方研究。
+- 明确区分 `事实`、`市场预期`、`推断`。
+- 缺少证据支撑的内容标记为 `[uncertain]`。
+- 每个重要结论都要给出证伪条件和跟踪指标。
+- 如果当前目录已有研究产物，先检查并续跑，不要机械重做。
+- 在最终下结论前，读取 `references/research_checklist.md` 并把它作为硬约束清单。
 
-1. 是否是长期优质企业（compounder）
-2. 是否具备持续高 ROIC 能力
-3. 当前市场是否存在错误定价（mispricing）
-4. 未来 1–3 年合理回报率大致是多少
-5. 是否值得重仓
+## 工作流
 
-## Execution Mode
+### Step 1：确认研究范围
 
-必须把任务拆成多个子任务，并在宿主支持时使用并行 sub-agents。
+确认或合理推断出形成投资结论所需的最小输入：
 
-推荐模块角色：
+- 公司名称
+- ticker、交易所、记账货币
+- 希望覆盖的时间范围
+- 最低可接受回报率或收益门槛
 
-- `Industry Analyst`
-- `Moat Analyst`
-- `Financial Analyst`
-- `Growth Analyst`
-- `Market Expectation Analyst`
-- `Valuation Analyst`
-- `Risk Analyst`
-- `Investment Committee`
+如果当前目录已经有 `outline.yaml`、`fields.yaml`、`module-results/`、`results/` 或 `report.md`，先读取它们，再决定是续跑、局部刷新还是整体重做。
 
-每个子任务都必须：
+### Step 2：生成或刷新研究计划
 
-- 目标明确
-- 使用外部数据支持
-- 输出中间结论
+创建或更新 `{company_slug}/outline.yaml` 和 `{company_slug}/fields.yaml`。
 
-## Workflow
-
-### Step 1：问题拆解
-
-仅使用模型知识做“任务定义”，不要在这一步下投资结论。
-
-输出：
-
-- 本次研究需要解决的核心问题
-- 不超过 5 个关键变量
-
-关键变量应优先从这些方向筛选：
-
-- 护城河
-- ROIC
-- 自由现金流
-- 行业结构
-- 未来 1–3 年业绩与股价驱动因素
-
-使用 `request_user_input` 确认：
-
-- 目标公司、ticker、交易所、货币口径
-- 研究时间范围
-- 用户希望的最低年化回报率门槛
-
-### Step 2：信息收集规划
-
-必须使用外部信息，不能只依赖已有知识。
-
-优先来源：
-
-- 公司公告 / 财报
-- 业绩会纪要
-- 券商研报
-- 行业数据
-
-后台启动 1 个 `web-search-agent`，补充：
-
-- 关键资料清单
-- 最新重要变化
-- 一致预期相关线索
-- 行业结构与竞争数据来源
-
-### Step 3：生成研究 Outline
-
-生成 `outline.yaml`，其中至少包含：
+`outline.yaml` 至少包含：
 
 - `topic`
 - `target_company`
-- `research_type`: `invest_reasearch_stock`
+- `ticker`
+- `research_type: invest_reasearch_stock`
 - `core_questions`
 - `key_variables`
 - `source_priority`
-- `module_agents`
+- `modules`
 - `execution`
 
-`module_agents` 必须包含：
+`modules` 应覆盖：
 
-- `industry_analyst`
-- `moat_analyst`
-- `financial_analyst`
-- `growth_analyst`
-- `market_expectation_analyst`
-- `valuation_analyst`
-- `risk_analyst`
+- `industry`
+- `moat`
+- `financial`
+- `growth`
+- `expectation`
+- `valuation`
+- `risk`
 - `investment_committee`
 
-`execution` 必须包含：
+`execution` 至少包含：
 
-- `batch_size`
-- `output_dir`
-- `module_dir`
 - `time_range`
 - `return_hurdle`
+- `output_dir`
+- `module_dir`
 - `final_decision_options`
-  - `明显低估（重仓）`
-  - `结构机会（跟踪）`
-  - `合理估值（观望）`
-  - `明显高估（回避）`
 
-### Step 4：生成字段定义
+`fields.yaml` 应定义以下类别：
 
-生成 `fields.yaml`，字段分类必须按这套 workflow 对齐：
-
-- 问题拆解
-- 信息收集
-- 行业结构分析
-- 公司质量分析
+- 研究框架
+- 行业结构
+- 护城河与质量
 - 财务与现金流
-- 增长拆解
-- 市场预期分析
-- 预期差识别
-- 估值与回报率
-- 情景分析
-- 证伪机制
-- 最终决策
+- 增长驱动
+- 市场预期
+- 估值与回报
+- 风险与证伪
+- 最终结论
 
-每个字段至少包含：
+每个字段定义至少包含：
 
 - `name`
 - `description`
 - `detail_level`
 
-并始终保留：
+并始终保留 `uncertain` 字段。
 
-- `uncertain`
+### Step 3：收集证据并完成模块分析
 
-### Step 5：输出并确认
+通过联网检索和原始资料阅读收集证据。若宿主支持并行助手，就按模块拆分；否则顺序执行，但保持同样的模块结构。
 
-创建目录并保存：
+把模块笔记写入：
 
 ```text
-{current_working_directory}/{topic_slug}/
-  |- outline.yaml
-  |- fields.yaml
+{company_slug}/module-results/
+  industry.md
+  moat.md
+  financial.md
+  growth.md
+  expectation.md
+  valuation.md
+  risk.md
 ```
 
-再读取 `references/research_checklist.md`，把它作为 deep / report 阶段的硬约束。
+每个模块笔记都必须以这四部分收尾：
 
-## Follow-up Commands
+- 关键事实
+- 核心解释
+- 未决问题
+- 证伪点
 
-- `/research-deep` - 运行多 Agent 深度研究
-- `/research-report` - 生成最终投资决策报告
+### Step 4：合并结构化结果并校验
+
+读取全部模块笔记，合并成一个结构化 JSON：
+
+```text
+{company_slug}/results/{target_company_slug}.json
+```
+
+规则：
+
+- JSON 必须和 `fields.yaml` 对齐
+- 保留 `uncertain` 数组，列出尚未解决的字段
+- 不要悄悄省略缺失模块
+- 明确区分证据和判断
+
+写完 JSON 后，运行与本 skill 同目录的 `validate_json.py` 进行校验。持续修正覆盖缺口，直到校验通过，或者可以明确说明阻塞原因。
+
+### Step 5：生成最终投资决策报告
+
+生成 `{company_slug}/report.md`。只有在“后续会重复刷新同一份报告”时，才额外生成 `generate_report.py`；否则直接写 `report.md` 即可。
+
+报告至少包含：
+
+- 一句话核心结论
+- 商业质量与护城河总结
+- ROIC、现金流与增长总结
+- 市场预期差
+- Bear / Base / Bull 三情景表
+- 关键风险与证伪点
+- 跟踪清单
+- 最终投资结论
+
+最终结论只能四选一：
+
+- `明显低估（重仓）`
+- `结构机会（跟踪）`
+- `合理估值（观望）`
+- `明显高估（回避）`
+
+### Step 6：向用户返回结果
+
+先给出最终投资判断，再指出保存下来的产物路径。如果把握度不足，要具体说明还缺哪类证据。
+
+## 输出结构
+
+```text
+{current_working_directory}/{company_slug}/
+  outline.yaml
+  fields.yaml
+  module-results/
+  results/{target_company_slug}.json
+  generate_report.py   # 可选
+  report.md
+```

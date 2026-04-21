@@ -21,7 +21,7 @@ multi_agent = true
 default_mode_request_user_input = true
 """,
     "agents.web_researcher": """[agents.web_researcher]
-description = "Use this agent when you need to research information on the internet, particularly for debugging issues, finding solutions to technical problems, or gathering comprehensive information from multiple sources. This agent excels at finding relevant discussions. Use when you need creative search strategies, thorough investigation, or compilation of findings from multiple sources."
+description = "Use this agent when you need internet research for investment work, such as company analysis, industry mapping, regulatory checks, transcript collection, or gathering evidence from multiple public sources. Use it when you need creative search strategies, broad source coverage, and organized findings."
 config_file = "agents/web-researcher.toml"
 """,
 }

@@ -1,141 +1,173 @@
 ---
 name: invest_reasearch
-description: Conduct preliminary research on a topic and generate research outline. For academic research, benchmark research, technology selection, etc.
+user-invocable: true
+allowed-tools: Read, Write, Glob, WebSearch, Task, AskUserQuestion
+description: Conduct end-to-end investment research for a single public company or stock, from scoping and evidence collection through moat, ROIC, growth, valuation, risk, JSON validation, and the final decision memo. Use when you need one complete investment view rather than a split multi-command workflow.
 ---
 
-# Research Skill - Preliminary Research
+# Invest Reasearch Skill
 
 ## Trigger
-`/invest_reasearch <topic>`
+`/invest_reasearch <company name or ticker>`
+
+## Mission
+Complete one full investment-research workflow for a single listed company.
+
+Do not split the work into follow-up skills or ask the user to run another command unless they explicitly want to stop at an intermediate artifact.
+
+Always answer these five questions:
+
+1. Is this a long-term high-quality business?
+2. Does it sustain attractive ROIC and cash generation?
+3. Is the market currently mispricing it?
+4. What is the reasonable 1-3 year return range?
+5. What is the final action?
+
+## Operating Principles
+
+- Start with business quality, industry structure, and reinvestment runway before valuation.
+- Prefer primary and recent sources: filings, earnings calls, investor presentations, exchange disclosures, industry data, and reputable third-party research.
+- Separate `Facts`, `Market Expectations`, and `Inference`.
+- Mark unsupported or incomplete claims as `[uncertain]`.
+- Every major conclusion needs a falsification condition and a monitoring indicator.
+- If work artifacts already exist, inspect them first and resume from the latest trustworthy step instead of recreating everything.
+- If `references/research_checklist.md` is present, use it as a hard gate before the final decision.
 
 ## Workflow
 
-### Step 1: Generate Initial Framework from Model Knowledge
-Based on topic, use model's existing knowledge to generate:
-- Main research objects/items list in this domain
-- Suggested research field framework
+### Step 1: Scope the assignment
 
-Output {step1_output}, use request_user_input to confirm:
-- Need to add/remove items?
-- Does field framework meet requirements?
+Confirm or infer the minimum inputs needed for an investable conclusion:
 
-### Step 2: Web Search Supplement
-Use request_user_input to ask for time range (e.g., last 6 months, since 2024, unlimited).
+- company name
+- ticker, exchange, and reporting currency
+- preferred time range
+- minimum acceptable return or hurdle rate
 
-**Parameter Retrieval**:
-- `{topic}`: User input research topic
-- `{YYYY-MM-DD}`: Current date
-- `{step1_output}`: Complete output from Step 1
-- `{time_range}`: User specified time range
+If the working directory already contains `outline.yaml`, `fields.yaml`, `module-results/`, `results/`, or `report.md`, read them first and decide whether to resume, refresh, or replace stale pieces.
 
-**Hard Constraint**: The following prompt must be strictly reproduced, only replacing variables in {xxx}, do not modify structure or wording.
+### Step 2: Build or refresh the research plan
 
-Launch 1 web-search-agent (background), **Prompt Template**:
-```python
-prompt = f"""## Task
-Research topic: {topic}
-Current date: {YYYY-MM-DD}
+Create or update `{company_slug}/outline.yaml` and `{company_slug}/fields.yaml`.
 
-Based on the following initial framework, supplement latest items and recommended research fields.
+`outline.yaml` must contain at least:
 
-## Existing Framework
-{step1_output}
+- `topic`
+- `target_company`
+- `ticker`
+- `research_type: invest_reasearch_stock`
+- `core_questions`
+- `key_variables`
+- `source_priority`
+- `modules`
+- `execution`
 
-## Goals
-1. Verify if existing items are missing important objects
-2. Supplement items based on missing objects
-3. Continue searching for {topic} related items within {time_range} and supplement
-4. Supplement new fields
+`modules` should cover:
 
-## Output Requirements
-Return structured results directly (do not write files):
+- `industry`
+- `moat`
+- `financial`
+- `growth`
+- `expectation`
+- `valuation`
+- `risk`
+- `investment_committee`
 
-### Supplementary Items
-- item_name: Brief explanation (why it should be added)
-...
+`fields.yaml` should define categories for:
 
-### Recommended Supplementary Fields
-- field_name: Field description (why this dimension is needed)
-...
+- research framing
+- industry structure
+- moat and quality
+- financials and cash flow
+- growth drivers
+- market expectations
+- valuation and returns
+- risk and falsification
+- final decision
 
-### Sources
-- [Source1](url1)
-- [Source2](url2)
-"""
+Every field definition should include:
+
+- `name`
+- `description`
+- `detail_level`
+
+Always keep a reserved `uncertain` field.
+
+### Step 3: Collect evidence and run module analysis
+
+Gather evidence with web research and primary-source review. If the host supports parallel helpers, split the work by module; otherwise run sequentially while keeping the same structure.
+
+Write module notes to:
+
+```text
+{company_slug}/module-results/
+  industry.md
+  moat.md
+  financial.md
+  growth.md
+  expectation.md
+  valuation.md
+  risk.md
 ```
 
-**One-shot Example** (assuming researching AI Coding History):
-```
-## Task
-Research topic: AI Coding History
-Current date: 2025-12-30
+Each module note must end with:
 
-Based on the following initial framework, supplement latest items and recommended research fields.
+- key facts
+- interpretation
+- open questions
+- falsification points
 
-## Existing Framework
-### Items List
-1. GitHub Copilot: Developed by Microsoft/GitHub, first mainstream AI coding assistant
-2. Cursor: AI-first IDE, based on VSCode
-...
+### Step 4: Merge structured output and validate it
 
-### Field Framework
-- Basic Info: name, release_date, company
-- Technical Features: underlying_model, context_window
-...
+Read all module notes and map them into a single structured JSON:
 
-## Goals
-1. Verify if existing items are missing important objects
-2. Supplement items based on missing objects
-3. Continue searching for AI Coding History related items within since 2024 and supplement
-4. Supplement new fields
-
-## Output Requirements
-Return structured results directly (do not write files):
-
-### Supplementary Items
-- item_name: Brief explanation (why it should be added)
-...
-
-### Recommended Supplementary Fields
-- field_name: Field description (why this dimension is needed)
-...
-
-### Sources
-- [Source1](url1)
-- [Source2](url2)
+```text
+{company_slug}/results/{target_company_slug}.json
 ```
 
-### Step 3: Ask User for Existing Fields
-Use request_user_input to ask if user has existing field definition file, if so read and merge.
+Rules:
 
-### Step 4: Generate Outline (Separate Files)
-Merge {step1_output}, {step2_output} and user's existing fields, generate two files:
+- align the JSON to `fields.yaml`
+- keep an `uncertain` array listing unresolved fields
+- do not silently drop missing sections
+- distinguish clearly between evidence and judgment
 
-**outline.yaml** (items + config):
-- topic: Research topic
-- items: Research objects list
-- execution:
-  - batch_size: Number of parallel agents (confirm with request_user_input)
-  - items_per_agent: Items per agent (confirm with request_user_input)
-  - output_dir: Results output directory (default: ./results)
+Run the bundled `validate_json.py` located next to this skill after writing the JSON. Keep fixing coverage gaps until validation passes or you can clearly explain the blocker.
 
-**fields.yaml** (field definitions):
-- Field categories and definitions
-- Each field's name, description, detail_level
-- detail_level hierarchy: brief -> moderate -> detailed
-- uncertain: Uncertain fields list (reserved field, auto-filled in deep phase)
+### Step 5: Produce the final investment memo
 
-### Step 5: Output and Confirm
-- Create directory: `./{topic_slug}/`
-- Save: `outline.yaml` and `fields.yaml`
-- Show to user for confirmation
+Generate `{company_slug}/report.md`. Create `generate_report.py` only when a reusable report-conversion script is genuinely helpful; otherwise write the report directly.
 
-## Output Path
+The report must contain:
+
+- one-sentence core conclusion
+- business quality and moat summary
+- ROIC, cash flow, and growth summary
+- market expectation gap
+- bear / base / bull scenario table
+- key risks and falsification points
+- monitoring list
+- final decision
+
+Restrict the final decision to one of:
+
+- `Clearly Undervalued (High Conviction)`
+- `Structured Opportunity (Watchlist)`
+- `Fairly Valued (Observe)`
+- `Clearly Overvalued (Avoid)`
+
+### Step 6: Return the result to the user
+
+Share the final decision first, then point to the saved artifacts. If confidence is limited, explain exactly which evidence gap remains unresolved.
+
+## Output Layout
+
+```text
+{current_working_directory}/{company_slug}/
+  outline.yaml
+  fields.yaml
+  module-results/
+  results/{target_company_slug}.json
+  generate_report.py   # optional
+  report.md
 ```
-{current_working_directory}/{topic_slug}/
-  ├── outline.yaml    # items list + execution config
-  └── fields.yaml     # field definitions
-```
-
-## Follow-up Commands
-- `/research-deep` - Start deep research

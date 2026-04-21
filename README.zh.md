@@ -3,33 +3,34 @@
 [English](README.md) | [中文](README.zh.md)
 
 > 如果这个项目对你有帮助，欢迎点个 star。
-
-> 本仓库是一个面向投资研究场景的改写版本，整体工作流、结构设计和起点致敬并承接自 [Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills)。感谢原仓库提供的基础，这个仓库后续也会继续在这个基础上朝投资研究方向迭代。
-
+>
+> 本仓库是基于 [Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills) 面向投资研究场景的改写版本。感谢原仓库提供的工作流设计、结构和起点。
+>
 > 灵感来源：[RhinoInsight: Improving Deep Research through Control Mechanisms for Model Behavior and Context](https://arxiv.org/abs/2511.18743)
 
-这个项目把原本偏通用的结构化调研工作流，转成更适合投资研究的 skill 集合。它面向分析师和投资者，帮助完成研究范围搭建、资料搜集、公司比较、证据整理，以及最终研究报告或投资备忘录草稿的生成。
-
-目前仓库仍然保留了上游不少命名与目录结构，例如 `research`、`research-deep` 以及对应的 skill 目录，这样后续继续修改时更容易和原始仓库对照。也正因为如此，这个仓库虽然保留兼容命名，但 README 的定位、示例和后续方向都会明确围绕投资研究展开。
+这个仓库现在在每个平台/语言包里只保留一个主 skill：`invest_reasearch`。内部仍然保留 outline、模块分析、结构化 JSON、最终报告这些阶段，但用户不需要再在 `research-deep` 和 `research-report` 之间来回切换。
 
 ![Investment Research Workflow](workflow.png)
 
-## 这个 Skill 适合做什么
+## 这个 Skill 能做什么
 
-- **公司研究**：理解商业模式、业务结构、管理层背景和战略定位
-- **行业研究**：梳理产业链、竞争格局、行业驱动因素和长期趋势
-- **投资逻辑研究**：整理成长驱动、催化剂、核心假设以及反证材料
-- **尽职调查**：汇总风险因素、潜在红旗、监管信息和多来源交叉验证
-- **可比分析**：建立 peer list，并按统一字段收集多个公司或资产的信息
+`invest_reasearch` 用于对单一上市公司或股票做端到端投资研究：
+
+- 理解商业模式、护城河和行业结构
+- 评估 ROIC、现金流质量和增长持续性
+- 判断市场一致预期和潜在预期差
+- 形成 Bear / Base / Bull 情景
+- 产出结构化 JSON 和最终投资备忘录
 
 ## 典型产出
 
-通过这套工作流，你可以让 AI 协助生成：
+运行后通常会生成：
 
-- 一份结构化的研究清单或覆盖范围
-- 一套可复用的公司/行业研究字段模板
-- 每个研究对象的证据型笔记
-- 一份 markdown 研究报告或投资备忘录草稿
+- `outline.yaml`：研究范围、核心问题和执行配置
+- `fields.yaml`：研究字段定义
+- `module-results/*.md`：行业、护城河、财务、增长、预期、估值、风险等模块笔记
+- `results/{company}.json`：结构化研究结果
+- `report.md`：最终投资决策备忘录
 
 ## 安装
 
@@ -57,7 +58,7 @@ cp -r agents/web-search-modules ~/.claude/agents/
 pip install pyyaml
 ```
 
-### OpenCode（默认: gpt-5.4）
+### OpenCode（默认 gpt-5.4）
 
 ```bash
 # Skills
@@ -124,77 +125,67 @@ config_file = "agents/web-researcher.toml"
 
 ## 命令
 
-> **兼容性说明**：当前命令名仍然沿用上游 `research-*` 命名，便于后续维护和对照，但这里的推荐使用场景已经明确切到投资研究。
-
 > **Claude Code 2.1.0+**：支持直接用 `/skill-name` 触发。
 >
 > **旧版本**：请使用 `run /skill-name`。
 >
-> **Codex**：你可以从 `/skills` -> `List Skills` 里触发，也可以直接自然语言说明，例如 `Use the invest_reasearch skill to build an outline for China's brokerages`。
+> **Codex**：你可以从 `/skills` -> `List Skills` 里触发，也可以直接自然语言说明，例如 `Use the invest_reasearch skill to research NVIDIA`。
 
-| 命令 | 在投资研究中的用途 |
-|------|--------------------|
-| `/invest_reasearch` | 生成初始研究 outline，包括研究对象和需要收集的字段 |
-| `/research-deep` | 对每个研究对象做更深入的联网检索和证据搜集，并行整理结果 |
-| `/research-report` | 把整理好的 JSON 结果转成可读的 markdown 报告或备忘录草稿 |
+| 命令 | 作用 |
+|------|------|
+| `/invest_reasearch` | 一次完成完整工作流：确定研究范围、搜集证据、模块分析、JSON 校验、生成最终备忘录 |
 
-## 工作流示例
-
-> **示例主题**：中国券商行业
-
-### 阶段 1：搭建研究范围
+## 使用示例
 
 ```text
-/invest_reasearch 中国券商行业
+/invest_reasearch 腾讯控股
 ```
-
-**会发生什么**：你给出一个投资研究主题，skill 会先帮你提出结构化的研究范围。
 
 对于 Codex，也可以这样说：
 
 ```text
-Use the invest_reasearch skill to build an outline for China's brokerages
+Use the invest_reasearch skill to research Tencent and give me a final investment view
 ```
 
-**你会得到什么**：一组待研究的公司、细分方向或可比标的，以及一套字段列表，例如业务概况、收入结构、估值、催化剂、风险点和近期动态。
+默认情况下，这个 skill 会：
 
-### 阶段 2：深度调查
+1. 生成或刷新研究计划
+2. 收集证据并输出模块笔记
+3. 合并结构化 JSON 结果
+4. 生成最终投资备忘录
+
+如果你只想停在中间产物，请显式说明，例如：“先停在 outline.yaml”。
+
+## 输出结构
 
 ```text
-/research-deep
+{working-directory}/{company_slug}/
+  outline.yaml
+  fields.yaml
+  module-results/
+  results/{target_company_slug}.json
+  generate_report.py   # 可选
+  report.md
 ```
 
-**会发生什么**：工作流会逐个检索每个研究对象，从多个公开来源收集证据，并按对象整理材料。
+## 为什么会有这个仓库
 
-**你会得到什么**：每个公司或主题的详细资料，例如商业模式、财务背景、估值背景、行业地位、关键风险、催化剂和重要更新。
+这个仓库是对 `Deep-Research-skills` 的延续式改写，但明确把流程朝这些方向推进：
 
-### 阶段 3：生成报告
+- 公司和股票研究
+- 投资导向的证据收集
+- 预期差分析
+- 估值与回报框架
+- 最终投资备忘录生成
 
-```text
-/research-report
-```
-
-**会发生什么**：前面收集到的数据会被整合成结构化的 markdown 输出。
-
-**你会得到什么**：`report.md`，一份可继续编辑的研究报告或投资备忘录草稿，包含分节和目录。
-
-## 为什么有这个仓库
-
-这个仓库并不回避自己的来源。它就是在 `Deep-Research-skills` 的基础上，朝下面这些方向继续推进的一个致敬式改写版本：
-
-- 股票和公司研究
-- 行业和主题映射
-- 尽调导向的证据搜集
-- 投资备忘录生成
-
-换句话说，它不是假装从零开始，而是明确地站在原仓库基础上继续往前做。
+它不是假装和上游无关，而是明确站在原项目基础上继续演进。
 
 ## 需要帮助？
 
-如果你想让助手解释这个仓库的定位，可以直接这样问：
+你可以直接这样问：
 
 ```text
-帮我理解这个投资研究 skill 项目，以及它如何基于 Deep-Research-skills 继续演进
+帮我理解这个投资研究 skill 项目，以及它是如何工作的
 ```
 
 ## 致谢
@@ -202,6 +193,6 @@ Use the invest_reasearch skill to build an outline for China's brokerages
 - [Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills)
 - [RhinoInsight: Improving Deep Research through Control Mechanisms for Model Behavior and Context](https://arxiv.org/abs/2511.18743)
 
-## 许可证
+## 许可协议
 
 MIT

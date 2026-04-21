@@ -1,143 +1,171 @@
 ---
 name: invest_reasearch
-user-invocable: true
-allowed-tools: Read, Write, Glob, WebSearch, Task, AskUserQuestion
-description: 对目标话题进行初步调研，生成调研outline。用于学术调研、benchmark调研、技术选型等场景。
+description: 针对单只股票或单家公司执行完整投资研究，从立项、证据收集、护城河与 ROIC 分析、增长与预期差、估值与风险、JSON 校验到最终投资结论一次完成。适用于需要一个完整投资判断，而不是拆成多个 skill 分步运行的场景。
 ---
 
-# Research Skill - 初步调研
+# Invest Reasearch Skill
 
 ## 触发方式
-`/invest_reasearch <topic>`
+`/invest_reasearch <公司名称或股票代码>`
 
-## 执行流程
+## 任务目标
+围绕单一上市公司完成一次端到端投资研究。
 
-### Step 1: 模型内部知识生成初步框架
-基于topic，利用模型已有知识生成：
-- 该领域的主要研究对象/items列表
-- 建议的调研字段框架
+除非用户明确要求停在中间产物，否则不要把任务拆成额外 skill，也不要要求用户再运行别的命令。
 
-输出{step1_output}，使用AskUserQuestion确认：
-- items列表是否需要增减？
-- 字段框架是否满足需求？
+最终必须回答这五个问题：
 
-### Step 2: Web Search补充
-使用AskUserQuestion询问时间范围（如：最近6个月、2024年至今、不限）。
+1. 这是不是长期优质企业？
+2. 它是否具备持续较高的 ROIC 和现金创造能力？
+3. 市场当前是否存在错误定价？
+4. 未来 1 到 3 年的合理回报区间大致是多少？
+5. 最终投资动作是什么？
 
-**参数获取**：
-- `{topic}`: 用户输入的调研话题
-- `{YYYY-MM-DD}`: 当前日期
-- `{step1_output}`: Step 1生成的完整输出内容
-- `{time_range}`: 用户指定的时间范围
+## 研究原则
 
-**硬约束**：以下prompt必须严格复述，仅替换{xxx}中的变量，禁止改写结构或措辞。
+- 先看商业质量、行业结构和再投资空间，再看估值。
+- 优先使用最新且高质量的来源：财报、公告、业绩会、投资者演示、交易所披露、行业数据、可靠第三方研究。
+- 明确区分 `事实`、`市场预期`、`推断`。
+- 缺乏证据支持的内容标记为 `[uncertain]`。
+- 每个重要结论都要附带证伪条件和后续跟踪指标。
+- 如果当前目录已有研究产物，先检查后续跑，避免重复生成。
+- 如果存在 `references/research_checklist.md`，在最终下结论前把它当作硬约束清单使用。
 
-启动1个web-search-agent（后台），**Prompt模板**：
-```python
-prompt = f"""## 任务
-调研话题: {topic}
-当前日期: {YYYY-MM-DD}
+## 工作流
 
-基于以下初步框架，补充最新items和推荐调研字段。
+### Step 1：确认研究范围
 
-## 已有框架
-{step1_output}
+确认或合理推断出形成投资结论所需的最小输入：
 
-## 目标
-1. 验证已有items是否遗漏重要对象
-2. 根据遗漏对象进行补充items
-3. 继续搜索{topic}相关且{time_range}内的items并补充
-4. 补充新fields
+- 公司名称
+- ticker、交易所、记账货币
+- 希望覆盖的时间范围
+- 最低可接受回报率或收益门槛
 
-## 输出要求
-直接返回结构化结果（不写文件）：
+如果当前目录已经有 `outline.yaml`、`fields.yaml`、`module-results/`、`results/` 或 `report.md`，先读取它们，再决定是续跑、局部刷新还是整体重做。
 
-### 补充Items
-- item_name: 简要说明（为什么应该加入）
-...
+### Step 2：生成或刷新研究计划
 
-### 推荐补充字段
-- field_name: 字段描述（为什么需要这个维度）
-...
+创建或更新 `{company_slug}/outline.yaml` 和 `{company_slug}/fields.yaml`。
 
-### 信息来源
-- [来源1](url1)
-- [来源2](url2)
-"""
+`outline.yaml` 至少包含：
+
+- `topic`
+- `target_company`
+- `ticker`
+- `research_type: invest_reasearch_stock`
+- `core_questions`
+- `key_variables`
+- `source_priority`
+- `modules`
+- `execution`
+
+`modules` 应覆盖：
+
+- `industry`
+- `moat`
+- `financial`
+- `growth`
+- `expectation`
+- `valuation`
+- `risk`
+- `investment_committee`
+
+`fields.yaml` 应定义以下类别：
+
+- 研究框架
+- 行业结构
+- 护城河与质量
+- 财务与现金流
+- 增长驱动
+- 市场预期
+- 估值与回报
+- 风险与证伪
+- 最终结论
+
+每个字段定义至少包含：
+
+- `name`
+- `description`
+- `detail_level`
+
+并始终保留 `uncertain` 字段。
+
+### Step 3：收集证据并完成模块分析
+
+通过联网检索和原始资料阅读收集证据。若宿主支持并行助手，就按模块拆分；否则顺序执行，但保持同样的模块结构。
+
+把模块笔记写入：
+
+```text
+{company_slug}/module-results/
+  industry.md
+  moat.md
+  financial.md
+  growth.md
+  expectation.md
+  valuation.md
+  risk.md
 ```
 
-**One-shot示例**（假设调研AI Coding发展史）：
-```
-## 任务
-调研话题: AI Coding 发展史
-当前日期: 2025-12-30
+每个模块笔记都必须以这四部分收尾：
 
-基于以下初步框架，补充最新items和推荐调研字段。
+- 关键事实
+- 核心解释
+- 未决问题
+- 证伪点
 
-## 已有框架
-### Items列表
-1. GitHub Copilot: Microsoft/GitHub开发，首个主流AI编程助手
-2. Cursor: AI-first IDE，基于VSCode
-...
+### Step 4：合并结构化结果并校验
 
-### 字段框架
-- 基本信息: name, release_date, company
-- 技术特性: underlying_model, context_window
-...
+读取全部模块笔记，合并成一个结构化 JSON：
 
-## 目标
-1. 验证已有items是否遗漏重要对象
-2. 根据遗漏对象进行补充items
-3. 继续搜索AI Coding 发展史相关且2024年至今内的items并补充
-4. 补充新fields
-
-## 输出要求
-直接返回结构化结果（不写文件）：
-
-### 补充Items
-- item_name: 简要说明（为什么应该加入）
-...
-
-### 推荐补充字段
-- field_name: 字段描述（为什么需要这个维度）
-...
-
-### 信息来源
-- [来源1](url1)
-- [来源2](url2)
+```text
+{company_slug}/results/{target_company_slug}.json
 ```
 
-### Step 3: 询问用户已有字段
-使用AskUserQuestion询问用户是否有已定义的字段文件，如有则读取并合并。
+规则：
 
-### Step 4: 生成Outline（分离文件）
-合并{step1_output}、{step2_output}和用户已有字段，生成两个文件：
+- JSON 必须和 `fields.yaml` 对齐
+- 保留 `uncertain` 数组，列出尚未解决的字段
+- 不要悄悄省略缺失模块
+- 明确区分证据和判断
 
-**outline.yaml**（items + 配置）：
-- topic: 调研主题
-- items: 调研对象列表
-- execution:
-  - batch_size: 并行agent数量（需AskUserQuestion确认）
-  - items_per_agent: 每个agent调研项目数（需AskUserQuestion确认）
-  - output_dir: 结果输出目录（默认./results）
+写完 JSON 后，运行与本 skill 同目录的 `validate_json.py` 进行校验。持续修正覆盖缺口，直到校验通过，或者可以明确说明阻塞原因。
 
-**fields.yaml**（字段定义）：
-- 字段分类和定义
-- 每个字段的name、description、detail_level
-- detail_level分层：极简 → 简要 → 详细
-- uncertain: 不确定字段列表（保留字段，deep阶段自动填充）
+### Step 5：生成最终投资备忘录
 
-### Step 5: 输出并确认
-- 创建目录: `./{topic_slug}/`
-- 保存: `outline.yaml` 和 `fields.yaml`
-- 展示给用户确认
+生成 `{company_slug}/report.md`。只有在“后续会重复刷新同一份报告”时，才额外生成 `generate_report.py`；否则直接写 `report.md` 即可。
 
-## 输出路径
+报告至少包含：
+
+- 一句话核心结论
+- 商业质量与护城河总结
+- ROIC、现金流与增长总结
+- 市场预期差
+- Bear / Base / Bull 三情景表
+- 关键风险与证伪点
+- 跟踪清单
+- 最终投资结论
+
+最终结论只能四选一：
+
+- `明显低估（重仓）`
+- `结构机会（跟踪）`
+- `合理估值（观望）`
+- `明显高估（回避）`
+
+### Step 6：向用户返回结果
+
+先给出最终投资判断，再指出保存下来的产物路径。如果把握度不足，要具体说明还缺哪类证据。
+
+## 输出结构
+
+```text
+{current_working_directory}/{company_slug}/
+  outline.yaml
+  fields.yaml
+  module-results/
+  results/{target_company_slug}.json
+  generate_report.py   # 可选
+  report.md
 ```
-{当前工作目录}/{topic_slug}/
-  ├── outline.yaml    # items列表 + execution配置
-  └── fields.yaml     # 字段定义
-```
-
-## 后续命令
-- `/research-deep` - 开始深度调研

@@ -3,33 +3,34 @@
 [English](README.md) | [中文](README.zh.md)
 
 > If this project helps you, please consider giving it a star.
-
-> This repository is an investment-research-oriented adaptation of [Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills). Credit and thanks to the original project for the workflow design, structure, and starting point. This repo is intended to continue evolving from that base toward investment research use cases.
-
+>
+> This repository is an investment-research adaptation of [Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills). Credit and thanks to the original project for the workflow design, structure, and starting point.
+>
 > Inspired by [RhinoInsight: Improving Deep Research through Control Mechanisms for Model Behavior and Context](https://arxiv.org/abs/2511.18743)
 
-This project turns the original structured research workflow into a skill set aimed at investment research. It is designed for analysts and investors who want help building a research universe, collecting evidence, comparing companies, and drafting organized outputs.
-
-The current repository still keeps much of the upstream command naming and folder layout, such as `research`, `research-deep`, and related skill folders, so future modifications can stay easy to track. The wording, examples, and intended direction of this repo are focused on investment research.
+This repository now exposes a single main skill, `invest_reasearch`, for each platform/language package. The internal workflow still uses outline, module analysis, structured JSON, and final reporting, but the user no longer has to hop across separate `research-deep` and `research-report` skills.
 
 ![Investment Research Workflow](workflow.png)
 
-## What This Skill Is For
+## What The Skill Does
 
-- **Company Research**: Understand business models, segment mix, management background, and strategic positioning
-- **Industry Research**: Map industry chains, market structure, competitive dynamics, and long-term trends
-- **Investment Thesis Work**: Collect growth drivers, catalysts, key assumptions, and disconfirming evidence
-- **Due Diligence**: Organize risk factors, red flags, regulatory issues, and multi-source verification
-- **Comparable Analysis**: Build peer sets and gather consistent fields across multiple companies or assets
+`invest_reasearch` is designed for end-to-end research on one listed company or stock:
 
-## Typical Output
+- understand the business model, moat, and industry structure
+- evaluate ROIC, cash flow quality, and growth durability
+- identify consensus expectations and possible mispricing
+- frame bear / base / bull outcomes
+- produce a structured JSON result and a final investment memo
 
-With this workflow, you can use AI to help produce:
+## Typical Outputs
 
-- A structured research universe or coverage list
-- A reusable field schema for company and industry work
-- Evidence-backed notes for each target
-- A markdown research report or investment memo draft
+Running the skill can produce:
+
+- `outline.yaml` for scope, key questions, and execution settings
+- `fields.yaml` for the research schema
+- `module-results/*.md` for industry, moat, financial, growth, expectation, valuation, and risk notes
+- `results/{company}.json` for the structured research result
+- `report.md` for the final decision memo
 
 ## Installation
 
@@ -122,79 +123,69 @@ description = "Use this agent when you need internet research for investment wor
 config_file = "agents/web-researcher.toml"
 ```
 
-## Commands
-
-> **Compatibility note**: command names currently keep the upstream `research-*` naming for easier maintenance, but the intended usage here is investment research.
+## Command
 
 > **Claude Code 2.1.0+**: Direct `/skill-name` trigger is supported.
 >
 > **Older versions**: Use `run /skill-name` instead.
 >
-> **Codex**: You can trigger these skills from `/skills` -> `List Skills`, or ask naturally, for example `Use the invest_reasearch skill to build an outline for China's brokerages`.
+> **Codex**: You can trigger the skill from `/skills` -> `List Skills`, or ask naturally, for example `Use the invest_reasearch skill to research NVIDIA`.
 
-| Command | Investment Research Usage |
-|---------|---------------------------|
-| `/invest_reasearch` | Build an initial research outline, including targets and fields to collect |
-| `/research-deep` | Run deeper web research on each target with parallel agents and evidence gathering |
-| `/research-report` | Convert the collected JSON results into a readable markdown report or memo draft |
+| Command | What It Does |
+|---------|---------------|
+| `/invest_reasearch` | Runs the full workflow: scope the company, collect evidence, analyze modules, validate JSON, and generate the final memo |
 
-## Workflow Example
-
-> **Example topic**: China's brokerages
-
-### Phase 1: Build the Research Universe
+## Example
 
 ```text
-/invest_reasearch China's brokerages
+/invest_reasearch NVIDIA
 ```
-
-**What happens**: You give the skill an investment topic, and it proposes a structured research scope.
 
 For Codex, you can also say:
 
 ```text
-Use the invest_reasearch skill to build an outline for China's brokerages
+Use the invest_reasearch skill to research NVIDIA and give me a final investment view
 ```
 
-**What you get**: A list of companies, sub-segments, or comparable targets to investigate, plus a field list such as business overview, revenue mix, valuation, catalysts, risks, and recent developments.
+By default, the skill will:
 
-### Phase 2: Deep Investigation
+1. build or refresh the research plan
+2. collect evidence and produce module notes
+3. merge the structured JSON result
+4. generate the final investment memo
+
+If you only want an intermediate artifact, say so explicitly, for example: "stop after outline.yaml".
+
+## Output Layout
 
 ```text
-/research-deep
+{working-directory}/{company_slug}/
+  outline.yaml
+  fields.yaml
+  module-results/
+  results/{target_company_slug}.json
+  generate_report.py   # optional
+  report.md
 ```
-
-**What happens**: The workflow searches the web for each target, gathers evidence from multiple sources, and organizes notes target by target.
-
-**What you get**: Detailed material for each company or topic, including business model, financial context, valuation background, industry position, key risks, catalysts, and relevant updates.
-
-### Phase 3: Generate the Report
-
-```text
-/research-report
-```
-
-**What happens**: The collected data is consolidated into a structured markdown output.
-
-**What you get**: `report.md`, a readable research report or memo draft with sections and table of contents, ready for further editing.
 
 ## Why This Repo Exists
 
-This repo is not trying to hide its origin. It is a respectful adaptation of `Deep-Research-skills`, with the goal of steering the workflow toward:
+This repo is a respectful continuation of `Deep-Research-skills`, but with the workflow pointed toward:
 
-- equity and company research
-- industry and thematic mapping
-- diligence-oriented evidence collection
-- investment memo generation
+- company and stock research
+- investment-quality evidence gathering
+- expectation-gap analysis
+- valuation and return framing
+- final investment memo generation
 
-The repository will continue to be modified on top of that foundation rather than pretending to be built from scratch.
+The repository continues to build on that upstream structure rather than pretending to be unrelated.
 
 ## Need Help?
 
-If you want the assistant to explain this repo's positioning, you can ask:
+You can ask:
 
 ```text
-Help me understand this investment research skill project and how it builds on Deep-Research-skills
+Help me understand this investment research skill project and how it works
 ```
 
 ## Acknowledgements
