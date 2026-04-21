@@ -165,7 +165,7 @@ description: 作为多 Agent 投资研究系统的入口，只针对单只股票
   |- fields.yaml
 ```
 
-再读取 `references/munger-checklist.md`，把它作为 deep / report 阶段的硬约束。
+再读取 `references/research_checklist.md`，把它作为 deep / report 阶段的硬约束。
 
 ## Follow-up Commands
 
